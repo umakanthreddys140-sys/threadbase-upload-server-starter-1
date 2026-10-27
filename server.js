@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import uploadRoutes from "./routes/upload.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,15 +26,26 @@ app.post("/auth/login", (req, res) => {
   res.json({ token, user: { userId: user.userId, username: user.username } });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TODO Task 3: serve the uploads/ folder statically so returned URLs open.
-//   app.use("/uploads", express.static("uploads"));
-//
-// TODO Task 3: wire the upload route under /api.
-//   import uploadRoutes from "./routes/upload.routes.js";
-//   app.use("/api", uploadRoutes);
-// ─────────────────────────────────────────────────────────────────────────────
+// Serve the uploads/ folder statically so returned URLs open
+app.use("/uploads", express.static("uploads"));
+
+// Wire the upload route under /api
+app.use("/api", uploadRoutes);
 
 app.get("/", (req, res) => res.json({ ok: true, service: "threadbase-upload-server" }));
 
-app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
+// Error-handling middleware for multer errors and fileFilter rejections
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
+});
+
+const server = app.listen(PORT, () => console.log(`Server on http://localhost:${PORT}`));
+
+export default app;
+export { server };
